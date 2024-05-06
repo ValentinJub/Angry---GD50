@@ -129,6 +129,10 @@ function Level:init()
 
     -- background graphics
     self.background = Background()
+
+    self.alien0dead = false
+    self.alien1dead = false
+    self.alien2dead = false
 end
 
 function Level:update(dt)
@@ -172,19 +176,57 @@ function Level:update(dt)
 
     -- replace launch marker if original alien stopped moving
     if self.launchMarker.launched then
-        local xPos, yPos = self.launchMarker.alien.body:getPosition()
-        local xVel, yVel = self.launchMarker.alien.body:getLinearVelocity()
-        
-        -- if we fired our alien to the left or it's almost done rolling, respawn
-        if xPos < 0 or (math.abs(xVel) + math.abs(yVel) < 1.5) then
-            self.launchMarker.alien.body:destroy()
-            self.launchMarker = AlienLaunchMarker(self.world)
-
-            -- re-initialize level if we have no more aliens
-            if #self.aliens == 0 then
-                gStateMachine:change('start')
+        if self.launchMarker.split then
+            if not self.launchMarker.alien1.body:isDestroyed() then
+                local x1, y1 = self.launchMarker.alien1.body:getPosition()
+                local xVel1, yVel1 = self.launchMarker.alien1.body:getLinearVelocity()
+                if x1 < 0 or math.abs(xVel1) + math.abs(yVel1) < 1.5 then
+                    self.launchMarker.alien1.body:destroy()
+                    self.alien1dead = true
+                end
+            end
+            if not self.launchMarker.alien2.body:isDestroyed()  then
+                local x2, y2 = self.launchMarker.alien2.body:getPosition()
+                local xVel2, yVel2 = self.launchMarker.alien2.body:getLinearVelocity()
+                if x2 < 0 or math.abs(xVel2) + math.abs(yVel2) < 1.5 then
+                    self.launchMarker.alien2.body:destroy()
+                    self.alien2dead = true
+                end
             end
         end
+        if not self.launchMarker.alien.body:isDestroyed()  then
+            local xPos, yPos = self.launchMarker.alien.body:getPosition()
+            local xVel, yVel = self.launchMarker.alien.body:getLinearVelocity()
+        
+        -- if we fired our alien to the left or it's almost done rolling, respawn
+            if xPos < 0 or (math.abs(xVel) + math.abs(yVel) < 1.5) then
+                self.launchMarker.alien.body:destroy()
+                self.alien0dead = true
+            end
+        end
+
+        if self.launchMarker.split then
+           if self.alien0dead and self.alien1dead and self.alien2dead then
+                self.launchMarker = AlienLaunchMarker(self.world)
+                self.alien0dead = false
+                self.alien1dead = false
+                self.alien2dead = false
+                -- win condition; reset if all aliens are dead
+                if #self.aliens == 0 then
+                    gStateMachine:change('start')
+                end
+            end 
+        else
+            if self.alien0dead then 
+                self.launchMarker = AlienLaunchMarker(self.world) 
+                self.alien0dead = false
+                -- win condition; reset if all aliens are dead
+                if #self.aliens == 0 then
+                    gStateMachine:change('start')
+                end
+            end
+        end
+
     end
 end
 

@@ -42,6 +42,10 @@ function StartState:update(dt)
     if love.keyboard.wasPressed('escape') then
         love.event.quit()
     end
+
+    if love.keyboard.wasPressed('r') then
+        gStateMachine:change('start')
+    end    
 end
 
 function StartState:render()

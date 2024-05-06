@@ -27,6 +27,8 @@ function AlienLaunchMarker:init(world)
 
     -- our alien we will eventually spawn
     self.alien = nil
+
+    self.split = false
 end
 
 function AlienLaunchMarker:update(dt)
@@ -48,8 +50,10 @@ function AlienLaunchMarker:update(dt)
             -- spawn new alien in the world, passing in user data of player
             self.alien = Alien(self.world, 'round', self.shiftedX, self.shiftedY, 'Player')
 
+            self.initialVelocity = {x = (self.baseX - self.shiftedX) * 10, y = (self.baseY - self.shiftedY) * 10}
+
             -- apply the difference between current X,Y and base X,Y as launch vector impulse
-            self.alien.body:setLinearVelocity((self.baseX - self.shiftedX) * 10, (self.baseY - self.shiftedY) * 10)
+            self.alien.body:setLinearVelocity(self.initialVelocity.x, self.initialVelocity.y)
 
             -- make the alien pretty bouncy
             self.alien.fixture:setRestitution(0.4)
@@ -64,7 +68,24 @@ function AlienLaunchMarker:update(dt)
             self.shiftedX = math.min(self.baseX + 30, math.max(x, self.baseX - 30))
             self.shiftedY = math.min(self.baseY + 30, math.max(y, self.baseY - 30))
         end
+    elseif self.launched and love.keyboard.wasPressed('space') then
+        self:splitAlien()
+        self.split = true
     end
+end
+
+function AlienLaunchMarker:splitAlien()
+    local x, y = self.alien.body:getPosition()
+    local alien1 = Alien(self.world, 'round', x, y - 10, 'Player')
+    local alien2 = Alien(self.world, 'round', x, y + 10, 'Player')
+    self.alien2 = alien2
+    self.alien1 = alien1
+    alien1.body:setLinearVelocity(self.initialVelocity.x, self.initialVelocity.y)
+    alien2.body:setLinearVelocity(self.initialVelocity.x, self.initialVelocity.y)
+    alien1.fixture:setRestitution(0.4)
+    alien2.fixture:setRestitution(0.4)
+    alien1.body:setAngularDamping(1)
+    alien2.body:setAngularDamping(1)
 end
 
 function AlienLaunchMarker:render()
@@ -103,6 +124,10 @@ function AlienLaunchMarker:render()
         
         love.graphics.setColor(1, 1, 1, 1)
     else
-        self.alien:render()
+        if self.alien and not self.alien.body:isDestroyed() then self.alien:render() end
+        if self.split then
+            if not self.alien1.body:isDestroyed() then self.alien1:render() end
+            if not self.alien2.body:isDestroyed() then self.alien2:render() end
+        end
     end
 end
